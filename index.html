@@ -1,0 +1,422 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ankita's Never Ending Battle ❤️</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#17142c;color:white;
+ font-family:Arial,sans-serif;text-align:center;
+ touch-action:manipulation;
+}
+header{padding:12px;background:#282044}
+header h2{color:#ffb5d1;margin:5px}
+#game{
+ position:relative;width:100%;max-width:600px;
+ height:68vh;min-height:450px;max-height:680px;
+ margin:auto;overflow:hidden;
+ border:3px solid #ffb5d1;border-radius:16px;
+ background:linear-gradient(#272c62,#9b589b);
+}
+#stars{
+ position:absolute;inset:0;opacity:.5;
+ background-image:radial-gradient(white 1px,transparent 1px);
+ background-size:35px 35px;
+}
+#hud{
+ position:absolute;top:8px;width:100%;
+ display:flex;justify-content:space-around;
+ z-index:5;font-size:13px;font-weight:bold;
+}
+.bar{
+ width:75px;height:8px;background:#555;
+ border-radius:10px;margin:4px auto;
+}
+.fill{height:100%;background:#ff477e;width:100%}
+#girl{
+ position:absolute;bottom:15px;left:50%;
+ transform:translateX(-50%);
+ font-size:65px;z-index:4;
+}
+.enemy{
+ position:absolute;top:0;left:0;
+ font-size:43px;z-index:3;
+ transform:translate(-50%,-50%);
+}
+.bullet{
+ position:absolute;z-index:6;
+ background:white;color:#e63879;
+ border:2px solid #ff9fc6;
+ border-radius:20px;padding:6px 10px;
+ font-weight:bold;font-size:14px;
+ white-space:nowrap;
+ pointer-events:none;
+}
+#dialogue{
+ position:absolute;top:75px;left:5%;
+ width:90%;z-index:8;
+ display:flex;flex-direction:column;gap:7px;
+ align-items:flex-start;pointer-events:none;
+}
+.chat{
+ background:white;color:#292044;
+ padding:9px 12px;border-radius:14px;
+ font-size:13px;font-weight:bold;
+ max-width:90%;text-align:left;
+ box-shadow:0 2px 7px #222;
+ animation:pop .2s ease-out;
+}
+.chat.ankita{
+ align-self:flex-end;
+ background:#ffd1e5;
+}
+@keyframes pop{
+ from{transform:scale(.8);opacity:0}
+ to{transform:scale(1);opacity:1}
+}
+#overlay{
+ position:absolute;inset:0;z-index:20;
+ background:#17142cee;
+ display:flex;align-items:center;
+ justify-content:center;padding:20px;
+}
+.panel{max-width:370px}
+.panel h1{color:#ff9fc6}
+.panel p{line-height:1.6}
+.hidden{display:none!important}
+#controls{max-width:600px;margin:9px auto}
+button{
+ border:0;border-radius:14px;padding:12px 15px;
+ margin:3px;font-weight:bold;font-size:15px;
+ background:#ffb5d1;color:#351b3d;
+}
+button:active{transform:scale(.93)}
+#fire{background:#ff477e;color:white;min-width:115px}
+#status{font-size:13px;color:#ffd8e9;min-height:20px}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>💗 ANKITA: NEVER ENDING BATTLE 💗</h2>
+<div>Mission: SAVE PROTHOMIT 😂</div>
+</header>
+
+<div id="game">
+
+<div id="stars"></div>
+
+<div id="hud">
+ <div>❤️ LIVES<br><span id="lives">5</span></div>
+ <div>⭐ SCORE<br><span id="score">0</span></div>
+ <div>👾 ENEMIES<br><span id="kills">0</span></div>
+</div>
+
+<div id="dialogue"></div>
+
+<div id="girl">👧🏻</div>
+
+<div id="overlay">
+ <div class="panel">
+  <h1>💗 ANKITA'S BATTLE 💗</h1>
+  <p>Oh no! The enemy team is trying to kidnap Prothomit!</p>
+  <p>Ankita, you are the ONLY shooter!</p>
+  <p>Enemies will keep coming. Keep shooting them!</p>
+  <p>Weapons: Hmm 💗 | Accha 😌 | 👍</p>
+  <button onclick="startGame()">START THE BATTLE 🚀</button>
+ </div>
+</div>
+
+</div>
+
+<div id="controls">
+ <div id="status">Waiting for Ankita... 🥱</div>
+ <button onclick="move(-1)">⬅️ LEFT</button>
+ <button id="fire" onclick="shoot()">FIRE! 💬</button>
+ <button onclick="move(1)">RIGHT ➡️</button>
+ <br>
+ <button onclick="shoot('hmm')">Hmm 💗</button>
+ <button onclick="shoot('accha')">Accha 😌</button>
+ <button onclick="shoot('👍')">👍</button>
+</div>
+
+<script>
+const game=document.getElementById("game");
+const girl=document.getElementById("girl");
+const dialogue=document.getElementById("dialogue");
+const overlay=document.getElementById("overlay");
+
+let active=false;
+let playerX=50;
+let lives=5;
+let score=0;
+let kills=0;
+let enemies=[];
+let bullets=[];
+let lastTime=0;
+let lastSpawn=0;
+let lastTalk=0;
+let talkIndex=0;
+let animation=null;
+
+const conversations=[
+ ["ankita","aaaaa mujheee gusssaaaa arha haiiii 😡"],
+ ["enemy","Nooo I want kissyyyy 😘"],
+ ["ankita","aaaaeeee papa phone leliyeeee 📱"],
+ ["enemy","areee pehle maar toh lo mujheee 😂"],
+ ["ankita","mujhe neeenddd aarhiii haiiii I'm sooo sleepyyy 🥱"],
+ ["enemy","areee pehle apne pati ko toh baccha leee ❤️"],
+ ["ankita","hmmmmmmmm!! 😶"],
+ ["enemy","areee meri maa thik se jawab toh deeee 😂"],
+ ["ankita","ACCHAAAAA!!! 😤"],
+ ["enemy","Areyyy itna gussa kyuuu?! 😭"],
+ ["ankita","👍"],
+ ["enemy","Bas thumbs up se kya hoga meri maa 😂"],
+ ["ankita","PROTHOMIT KO CHHORO!!! 😡"],
+ ["enemy","Pehle ek kiss toh de doooo 😘"],
+ ["ankita","MERE PAAS TIME NAHI HAI 😴"],
+ ["enemy","Areyyy phir se neend aa gayi?! 🥱"]
+];
+
+function updateHUD(){
+ document.getElementById("lives").textContent=lives;
+ document.getElementById("score").textContent=score;
+ document.getElementById("kills").textContent=kills;
+}
+
+function say(who,text){
+ const bubble=document.createElement("div");
+ bubble.className="chat "+who;
+ bubble.textContent=(who==="ankita"?"👧 Ankita: ":"👾 Enemy: ")+text;
+
+ dialogue.appendChild(bubble);
+
+ while(dialogue.children.length>2){
+  dialogue.removeChild(dialogue.firstChild);
+ }
+}
+
+function move(direction){
+ if(!active)return;
+
+ playerX=Math.max(8,Math.min(92,playerX+direction*9));
+ girl.style.left=playerX+"%";
+}
+
+function shoot(type){
+ if(!active)return;
+
+ const options=["hmm","accha","👍"];
+ const weapon=type||options[Math.floor(Math.random()*options.length)];
+
+ const bullet=document.createElement("div");
+ bullet.className="bullet";
+ bullet.textContent=weapon;
+
+ const x=playerX;
+ bullet.style.left=x+"%";
+ bullet.style.top=(game.clientHeight-105)+"px";
+
+ game.appendChild(bullet);
+
+ bullets.push({
+  el:bullet,
+  x:x,
+  y:game.clientHeight-105,
+  weapon:weapon
+ });
+}
+
+function spawnEnemy(){
+ if(!active)return;
+
+ const el=document.createElement("div");
+ el.className="enemy";
+ el.textContent=["👾","👹","🤡","👻","😈"][
+  Math.floor(Math.random()*5)
+ ];
+
+ const x=8+Math.random()*84;
+
+ el.style.left=x+"%";
+ el.style.top="-35px";
+
+ game.appendChild(el);
+
+ enemies.push({
+  el:el,
+  x:x,
+  y:-35,
+  speed:65+Math.min(score*0.12,65)
+ });
+}
+
+function conversation(){
+ if(!active)return;
+
+ const item=conversations[talkIndex];
+ say(item[0],item[1]);
+
+ talkIndex=(talkIndex+1)%conversations.length;
+}
+
+function gameLoop(timestamp){
+ if(!active)return;
+
+ const dt=lastTime?
+  Math.min((timestamp-lastTime)/1000,0.05):0;
+
+ lastTime=timestamp;
+
+ // Keep spawning enemies continuously
+ if(timestamp-lastSpawn>1450){
+  if(enemies.length<5)spawnEnemy();
+  lastSpawn=timestamp;
+ }
+
+ // Move enemies downwards
+ for(let i=enemies.length-1;i>=0;i--){
+  const e=enemies[i];
+  e.y+=e.speed*dt;
+  e.el.style.top=e.y+"px";
+
+  // Enemy reaches Ankita's side
+  if(e.y>game.clientHeight-75){
+   e.el.remove();
+   enemies.splice(i,1);
+   lives--;
+   updateHUD();
+
+   document.getElementById("status").textContent=
+   "Oh no! An enemy got past Ankita! 😭";
+
+   if(lives<=0){
+    gameOver();
+    return;
+   }
+  }
+ }
+
+ // Move Ankita's speech-bubble bullets upwards
+ for(let i=bullets.length-1;i>=0;i--){
+  const b=bullets[i];
+  b.y-=430*dt;
+  b.el.style.top=b.y+"px";
+
+  if(b.y<-40){
+   b.el.remove();
+   bullets.splice(i,1);
+   continue;
+  }
+
+  // Collision detection
+  let hit=false;
+
+  for(let j=enemies.length-1;j>=0;j--){
+   const e=enemies[j];
+
+   if(Math.abs(b.x-e.x)<9 &&
+      Math.abs(b.y-e.y)<38){
+
+    e.el.remove();
+    enemies.splice(j,1);
+
+    b.el.remove();
+    bullets.splice(i,1);
+
+    score+=10;
+    kills++;
+
+    document.getElementById("status").textContent=
+    "Enemy defeated! Ankita is unstoppable! 😂";
+
+    updateHUD();
+    hit=true;
+    break;
+   }
+  }
+ }
+
+ animation=requestAnimationFrame(gameLoop);
+}
+
+function startGame(){
+ stopGame();
+
+ active=true;
+ playerX=50;
+ lives=5;
+ score=0;
+ kills=0;
+ enemies=[];
+ bullets=[];
+ talkIndex=0;
+ lastTime=0;
+ lastSpawn=performance.now();
+ lastTalk=0;
+
+ game.querySelectorAll(".enemy,.bullet").forEach(e=>e.remove());
+
+ girl.style.left="50%";
+ dialogue.innerHTML="";
+ overlay.classList.add("hidden");
+
+ updateHUD();
+
+ document.getElementById("status").textContent=
+ "Ankita has entered the battlefield! ❤️";
+
+ conversation();
+
+ // Both characters keep talking
+ const dialogueTimer=setInterval(()=>{
+  if(active)conversation();
+  else clearInterval(dialogueTimer);
+ },2400);
+
+ animation=requestAnimationFrame(gameLoop);
+}
+
+function stopGame(){
+ active=false;
+
+ if(animation!==null){
+  cancelAnimationFrame(animation);
+  animation=null;
+ }
+}
+
+function gameOver(){
+ stopGame();
+
+ overlay.innerHTML=`
+ <div class="panel">
+ <h1>🥱 ANKITA IS TIRED!</h1>
+ <h2>GAME OVER 😂</h2>
+ <p>Enemy: "Areyyy uthooo meri maa!"</p>
+ <p>But Prothomit says: "You tried your best, Ankita! ❤️"</p>
+ <h2>⭐ Score: ${score}</h2>
+ <h2>👾 Enemies defeated: ${kills}</h2>
+ <button onclick="startGame()">PLAY AGAIN 🔁</button>
+ </div>`;
+
+ overlay.classList.remove("hidden");
+}
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft")move(-1);
+ if(e.key==="ArrowRight")move(1);
+
+ if(e.code==="Space"){
+  e.preventDefault();
+  shoot();
+ }
+});
+</script>
+</body>
+</html>
